@@ -13,6 +13,7 @@ Put these five files together (nothing else is required):
 - `matcher.py`
 - `registry_report.py`
 - `requirements.txt`
+- `.streamlit/config.toml`  ← Mister Mobile theme colours (see note in Step 2)
 
 ---
 
@@ -26,7 +27,10 @@ Put these five files together (nothing else is required):
 1. Click the **+** (top-right) → **New repository**.
 2. Repository name: `mm-getgreenr-stock`. Set it to **Private**. Click **Create repository**.
 3. On the next page click **uploading an existing file** (the link in the middle).
-4. Drag in the five files listed above. Click **Commit changes**.
+4. Drag in the `.py` and `requirements.txt` files. Click **Commit changes**.
+5. **For the MM theme:** click **Add file → Create new file**. In the name box type
+   `.streamlit/config.toml` (typing the `/` creates the folder), paste the contents of
+   the `config.toml` I gave you, then **Commit changes**.
 
 ## Step 3 — Deploy on Streamlit Community Cloud
 

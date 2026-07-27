@@ -193,7 +193,8 @@ def key(b, m, c, col):
 
 
 def build(gg_file=GG_PATH, ml_file=ML_PATH):
-    gg = pd.read_csv(gg_file) if str(gg_file).lower().endswith(".csv") else pd.read_excel(gg_file)
+    name = getattr(gg_file, "name", str(gg_file)).lower()
+    gg = pd.read_csv(gg_file) if name.endswith(".csv") else pd.read_excel(gg_file)
     ml = load_masterlist(ml_file)
 
     # GetGreenr grade "Excellent" == Masterlist "Used" condition, so GetGreenr

@@ -9,6 +9,7 @@ Replicates the SellUp_Match_Review design:
   - a titled Summary sheet with an offset Category/Count table
 Sheet set mirrors SellUp, with SellUp -> GetGreenr renaming.
 """
+import io
 import re
 import pandas as pd
 from openpyxl import Workbook
@@ -136,8 +137,7 @@ def g(row, k):
     return "" if (v is None or (isinstance(v, float) and pd.isna(v))) else v
 
 
-def main():
-    out = M.build()
+def build_workbook(out):
     wb = Workbook()
     wb.remove(wb.active)  # drop default sheet
 
@@ -222,11 +222,24 @@ def main():
     write_sheet(wb, "Not Selling in GetGreenr", ns_headers, ns_bands, [], ns_widths)
     write_sheet(wb, "Not on GetGreenr Yet", ny_headers, ny_bands, [], ny_widths)
 
+    wb._counts = {"locked": len(lk_rows), "review": len(mr_rows), "new_ml": len(nm_rows)}
+    return wb
+
+
+def build_registry_bytes(gg_file, ml_file):
+    """Run matching on the uploaded files and return the styled registry as bytes."""
+    out = M.build(gg_file, ml_file)
+    wb = build_workbook(out)
+    bio = io.BytesIO()
+    wb.save(bio)
+    return bio.getvalue(), wb._counts
+
+
+def main():
+    out = M.build()
+    wb = build_workbook(out)
     wb.save(OUT)
-    print("Wrote", OUT)
-    print("Sheets:", wb.sheetnames)
-    print("Counts -> locked:%d review:%d new_ml:%d" %
-          (len(lk_rows), len(mr_rows), len(nm_rows)))
+    print("Wrote", OUT, "| sheets:", wb.sheetnames, "| counts:", wb._counts)
 
 
 if __name__ == "__main__":

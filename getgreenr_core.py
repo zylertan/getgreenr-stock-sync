@@ -64,6 +64,17 @@ def to_int(v):
     return max(int(round(float(m.group()))), 0) if m else 0
 
 
+def nid(v):
+    """Normalise a Stock Type ID for matching (drops trailing '.0')."""
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return ""
+    return re.sub(r"\.0$", "", str(v).strip())
+
+
+def _blank(v):
+    return v is None or (isinstance(v, float) and pd.isna(v)) or str(v).strip() == "" or str(v).strip().lower() == "nan"
+
+
 # --------------------------------------------------------------------------- #
 # Registry reading
 # --------------------------------------------------------------------------- #
@@ -96,7 +107,7 @@ def read_registry(registry_file):
                 continue
             ids = []
             if id_c is not None and not (isinstance(r.get(id_c), float) and pd.isna(r.get(id_c))):
-                ids = [x.strip() for x in re.split(r"[,\s]+", str(r.get(id_c))) if x.strip()]
+                ids = [nid(x) for x in re.split(r"[,\s]+", str(r.get(id_c))) if x.strip()]
             locked_map[str(sku).strip()] = {
                 "ids": ids, "target": to_int(r.get(tgt_c)) if tgt_c else 0}
 
@@ -121,7 +132,44 @@ def read_registry(registry_file):
                 if sku is not None and not (isinstance(sku, float) and pd.isna(sku)):
                     accessory_set.add(str(sku).strip())
 
+    # New Masterlist SKUs marked "Linked" -> fold into the locked mapping so the
+    # linked Masterlist ID's Used qty flows to the chosen GetGreenr listing.
+    nm = sheet_like("new masterlist")
+    if nm is not None:
+        link_c = find_col(nm.columns, ["link to getgreenr sku id", "link to sku", "getgreenr sku id"])
+        mlid_c = find_col(nm.columns, ["masterlist stock type id", "stock type id", "masterlist id"])
+        dec_c = find_col(nm.columns, ["reviewer decision", "decision"])
+        for _, r in nm.iterrows():
+            if dec_c and _norm(r.get(dec_c)) == "linked" and link_c and not _blank(r.get(link_c)):
+                link = str(r.get(link_c)).strip()
+                mlid = nid(r.get(mlid_c)) if mlid_c else ""
+                entry = locked_map.setdefault(link, {"ids": [], "target": 0})
+                if mlid and mlid not in entry["ids"]:
+                    entry["ids"].append(mlid)
+
     return locked_map, review_map, accessory_set
+
+
+def new_masterlist_status(registry_file):
+    """(total, reviewed, missing) rows on the New Masterlist SKUs sheet.
+
+    A row counts as reviewed when its Reviewer Decision is non-blank.
+    """
+    sheets = pd.read_excel(registry_file, sheet_name=None, dtype=object)
+    df = None
+    for name, d in sheets.items():
+        if "new masterlist" in _norm(name):
+            df = d
+            break
+    if df is None:
+        return (0, 0, 0)
+    df = df.dropna(how="all")
+    total = len(df)
+    dec_c = find_col(df.columns, ["reviewer decision", "decision"])
+    if dec_c is None:
+        return (total, 0, total)
+    reviewed = int(df[dec_c].apply(lambda v: not _blank(v)).sum())
+    return (total, reviewed, total - reviewed)
 
 
 # --------------------------------------------------------------------------- #
@@ -132,7 +180,7 @@ def masterlist_used_qty(ml_file):
     ml = ml[ml["Category"].astype(str).str.strip().str.lower() == "used"]
     qty = {}
     for _, r in ml.iterrows():
-        qty[str(r["StockTypeID"]).strip()] = qty.get(str(r["StockTypeID"]).strip(), 0) + int(r["qty"])
+        qty[nid(r["StockTypeID"])] = qty.get(nid(r["StockTypeID"]), 0) + int(r["qty"])
     return qty
 
 
