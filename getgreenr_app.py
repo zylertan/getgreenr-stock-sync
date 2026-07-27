@@ -98,11 +98,16 @@ def check_password():
     st.stop()
 
 
+class NamedBytes(io.BytesIO):
+    """BytesIO that reliably carries a .name (plain BytesIO can't hold attributes)."""
+    def __init__(self, data, name):
+        super().__init__(data)
+        self.name = name
+
+
 def buf(uploaded):
     """Fresh, rewound in-memory copy of an uploaded file (keeps the filename)."""
-    b = io.BytesIO(uploaded.getvalue())
-    b.name = uploaded.name
-    return b
+    return NamedBytes(uploaded.getvalue(), uploaded.name)
 
 
 check_password()
@@ -144,7 +149,8 @@ if not (masterlist_file and getgreenr_file):
 
 # ---------------------------------------------------------------- Phase A: registry #
 with st.spinner("Matching against the Masterlist…"):
-    reg_bytes, counts = RR.build_registry_bytes(buf(getgreenr_file), buf(masterlist_file))
+    reg_bytes, counts = RR.build_registry_bytes(buf(getgreenr_file), buf(masterlist_file),
+                                                gg_name=getgreenr_file.name)
 
 st.divider()
 st.subheader("Step 2 · Review the registry")

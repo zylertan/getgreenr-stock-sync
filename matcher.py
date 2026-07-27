@@ -192,8 +192,8 @@ def key(b, m, c, col):
     return (b, mk(m), c, mk(col))
 
 
-def build(gg_file=GG_PATH, ml_file=ML_PATH):
-    name = getattr(gg_file, "name", str(gg_file)).lower()
+def build(gg_file=GG_PATH, ml_file=ML_PATH, gg_name=None):
+    name = (gg_name or getattr(gg_file, "name", "") or str(gg_file)).lower()
     gg = pd.read_csv(gg_file) if name.endswith(".csv") else pd.read_excel(gg_file)
     ml = load_masterlist(ml_file)
 

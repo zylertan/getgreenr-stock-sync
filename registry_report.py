@@ -226,9 +226,9 @@ def build_workbook(out):
     return wb
 
 
-def build_registry_bytes(gg_file, ml_file):
+def build_registry_bytes(gg_file, ml_file, gg_name=None):
     """Run matching on the uploaded files and return the styled registry as bytes."""
-    out = M.build(gg_file, ml_file)
+    out = M.build(gg_file, ml_file, gg_name=gg_name)
     wb = build_workbook(out)
     bio = io.BytesIO()
     wb.save(bio)
